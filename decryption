@@ -1,0 +1,41 @@
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import padding
+import os
+
+key = "thebestsecretkey" #Key is 16bytes#
+key_bytes = bytes(key, "utf-8")
+
+
+IV = os.urandom(16)
+aes_cipher = Cipher(algorithms.AES(key_bytes), modes.CBC(IV), backend=default_backend())
+aes_encryptor = aes_cipher.encryptor()
+
+plaintext = "thebestplaintext"
+plaintext_bytes = bytes(plaintext, "utf-8")
+print("Plaintext: " + plaintext)
+
+padder = padding.PKCS7(128).padder()
+padded_data = padder.update(plaintext_bytes) + padder.finalize()
+
+ciphertext_bytes = aes_encryptor.update(padded_data) + aes_encryptor.finalize()
+print("Ciphertext (hex):", ciphertext_bytes.hex())
+
+encrypted_data = IV + ciphertext_bytes
+
+IV = encrypted_data[:16]
+ciphertext_bytes = encrypted_data[16:]
+
+aes_decryptor = Cipher(algorithms.AES(key_bytes), modes.CBC(IV), backend=default_backend()).decryptor()
+decrypted_data = aes_decryptor.update(ciphertext_bytes) + aes_decryptor.finalize()
+
+unpadder = padding.PKCS7(128).unpadder()
+unpadded_plaintext = unpadder.update(decrypted_data) + unpadder.finalize()
+
+#ciphertext_bytes = aes_encryptor.update(plaintext_bytes) + aes_encryptor.finalize()
+#ciphertext = ciphertext_bytes.hex()
+#print("Ciphertext: " + ciphertext)
+
+
+plaintext_2 = unpadded_plaintext.decode("utf-8")
+print("Original Plaintext: " + plaintext_2)
